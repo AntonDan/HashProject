@@ -77,6 +77,7 @@ namespace GoogleHashCode {
     }
 
     public class Ride {
+        private static int counter = 0;
 
         public int id { get; private set; }
         public int startx { get; set; }
@@ -104,6 +105,7 @@ namespace GoogleHashCode {
         }
 
         public Ride(int a, int b, int x, int y, int s, int f) {
+            this.id = counter++;
             this.startx = a;
             this.starty = b;
             this.endx = x;

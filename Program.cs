@@ -7,34 +7,31 @@ using System.Threading.Tasks;
 namespace GoogleHashCode {
 
 	class Program {
-		private Ride[] jobs;
+		private static List<Ride> jobs;
 		private int[] memo;
-		private List<int> includedJobs;
+		private List<Ride> includedJobs;
 		private List<int> takenJobs = new List<int>();
 
 		public int GetDistance(int startx, int starty, int endx, int endy) {
 			return Math.Abs(startx - endx) + Math.Abs(starty - endy);
 		}
 
-		public void CalcShedule(Ride[] inputJobs, int id) {
-			Array.Copy(inputJobs, jobs, inputJobs.Length);
-			memo = new int[jobs.Length];
-			includedJobs = new List<int>();
-
-			Array.Sort(jobs, (a, b) => Comparer<int>.Default.Compare(a.finish, b.finish)); // Sort jobs by finish time
+		public void CalcShedule() {
+			memo = new int[jobs.Count];
+			includedJobs = new List<Ride>();
 
 			memo[0] = 0;        // Base case with no jobs selected
 
-			for (int i = 1; i < jobs.Length; i++) {
-				memo[i] = Math.Max(jobs[i].duration + memo[LatestCompatible(i)], memo[i - 1]);        //**add max value if job is included or if it's not included
+			for (int i = 1; i < jobs.Count; i++) {
+				memo[i] = Math.Max(jobs[i].duration + memo[LatestCompatible(i)], memo[i - 1]);        // add max value if job is included or if it's not included
 			}
 
 			FindSolutionIterative(memo.Length - 1);
 			Console.Write(includedJobs.Count + " ");
-			for (int i = includedJobs.Count - 1; i >= 0; i--) {        //Loop backwards to display jobs in increasing order of their ID's
-				Console.Write(jobs[includedJobs[i]].id + " ");         //** jobs[includedJobs[i]].id 
+			includedJobs.Reverse();
+			foreach (Ride ride in includedJobs) {        //Loop backwards to display jobs in increasing order of their ID's
+				Console.Write(ride.id + " ");  
 			}
-			includedJobs.Clear();
 			Console.WriteLine();
 		}
 
@@ -44,13 +41,12 @@ namespace GoogleHashCode {
 
 			while (low <= high) {       //Iterative binary search
 				int mid = (low + high) / 2;     //integer division (floor)
-				if (jobs[mid].start + jobs[mid].duration  <= jobs[i].finish - jobs[i].duration) {   //** if (jobs[mid].start_time + Math.Abs( jobs[mid].endx - jobs[i].startx) + Math.Abs( jobs[mid].endx - jobs[i].startx) <= jobs[i].end_time - jobs[i].duration)
-					if (jobs[mid + 1].start + jobs[mid + 1].duration <= jobs[i].finish - jobs[i].duration)  //** if (jobs[mid + 1].start_time + Math.Abs( jobs[mid+1].endx - jobs[i].startx) + Math.Abs( jobs[mid+1].endx - jobs[i].startx) <= jobs[i].end_time - jobs[i].duration)
+				if (jobs[mid].start + jobs[mid].duration <= jobs[i].finish - jobs[i].duration) { 
+					if (jobs[mid + 1].start + jobs[mid + 1].duration <= jobs[i].finish - jobs[i].duration)
 						low = mid + 1;
-					else
-						if (!takenJobs.Contains(jobs[mid].id))
-							return mid;
-					high = mid - 1;
+					else {
+						return mid;
+					}
 				} else
 					high = mid - 1;
 			}
@@ -62,50 +58,33 @@ namespace GoogleHashCode {
 			int temp = 0;
 			while (j > 0) { //Stops when j==0
 				int compatibleIndex = LatestCompatible(j);  //find latest finishing job that's compatible with job j
-				if (jobs[j].duration + memo[compatibleIndex] > memo[j - 1]) { //** Case where job j was included (from optimal substructure)
-					includedJobs.Add(j);    //add job index to solution
-					takenJobs.Add(jobs[j].id);
-					j = compatibleIndex;        //update j to the next job to consider
+				if (jobs[j].duration + memo[compatibleIndex] > memo[j - 1]) { // Case where job j was included (from optimal substructure)
+					includedJobs.Add(jobs[j]);    //add job index to solution
+					jobs.RemoveAt(j);			  // remove job from list (making it unavailable)
+					j = compatibleIndex;          //update j to the next job to consider
 					temp = compatibleIndex;
 				} else {    //case where job j was NOT included, remove job j from the possible jobs in the solution & look at jobs 1 to (j-1)
 					j = j - 1;
 				}
 			}
-			if (GetDistance(0, 0, jobs[temp].endx, jobs[temp].endy) > jobs[temp].finish - jobs[temp].duration)
-				takenJobs.Remove(temp);
-		}
-
-		//Recursive method to retrace the memoization array & find optimal solution
-		private void FindSolutionRecursive(int j) {
-			if (j == 0) {   //base case
-				return;
-			} else {
-				int compatibleIndex = LatestCompatible(j);  //find latest finishing job that's compatible with job j
-				if (jobs[j].duration + memo[compatibleIndex] > memo[j - 1] && !includedJobs.Contains(jobs[j].id)) { //Case where job j was included (from optimal substructure)
-					includedJobs.Add(j);    //add job index to solution
-					takenJobs.Add(jobs[j].id);
-					FindSolutionRecursive(compatibleIndex); //recursively find remaining jobs starting the the latest compatible job
-				} else {    //case where job j was NOT included, remove job j from the possible jobs in the solution
-					FindSolutionRecursive(j - 1);
-				}
+			if (GetDistance(0, 0, jobs[temp].endx, jobs[temp].endy) > jobs[temp].finish - jobs[temp].duration) {
+				includedJobs.Remove(jobs[temp]);
 			}
-		}
-
-		//Get a human-readable String representing the job & its 4 parts
-		private String GetJobInfo(int jobIndex) {
-			//	return "Job " + jobs[jobIndex][0] + ":  Time (" + jobs[jobIndex][1] + "-" + jobs[jobIndex][2] + ") Value=" + jobs[jobIndex][3];
-			return "";
 		}
 
 		static void Main(string[] args) {
 			Data parser = new Data();
 			parser.ParseData(args[0]);
 			parser.Rides.Insert(0, new Ride(0, 0, 0, 0, 0, 0));
+			parser.Rides[0].id = -1;
 			Program scheduler = new Program();
 			Ride[] inputJobs = parser.Rides.ToArray();
-			inputJobs[0].id = -1;
+			Array.Sort(inputJobs, (a, b) => Comparer<int>.Default.Compare(a.finish, b.finish)); // Sort jobs by finish time
+
+			jobs = inputJobs.ToList();
+
 			for (int i = 0; i < parser.Fleet; ++i) {
-				scheduler.CalcShedule(inputJobs, i);
+				scheduler.CalcShedule();
 			}
 		}
 	}

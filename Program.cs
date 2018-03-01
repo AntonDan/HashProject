@@ -8,11 +8,13 @@ namespace GoogleHashCode {
 	class Program {
 		private int[][] jobs;
 		private int[] memo;
-		private List<int> includedJobs = new List<int>();
+		private List<int> includedJobs;
+		private List<int> takenJobs = new List<int>();
 
-		public void CalcShedule(int[][] inputJobs) {
+		public void CalcShedule(int[][] inputJobs, int id) {
 			jobs = inputJobs;
 			memo = new int[jobs.Length];
+			includedJobs = new List<int>();
 
 			Array.Sort(jobs, (a, b) => Comparer<int>.Default.Compare(a[2], b[2])); // Sort jobs by finish time
 
@@ -23,14 +25,17 @@ namespace GoogleHashCode {
 			}
 
 
-			Console.WriteLine("Memoization array: " + memo.ToString());
-			Console.WriteLine("Maximum profit from the optimal set of jobs = " + memo[memo.Length - 1]);
+			//Console.WriteLine("Memoization array: " + memo.ToString());
+			//Console.WriteLine("Maximum profit from the optimal set of jobs = " + memo[memo.Length - 1]);
 
 			FindSolutionIterative(memo.Length - 1);     //Recursively find solution & update includedJobs
-			Console.WriteLine("\nJobs Included in optimal solution:");
+			Console.Write(includedJobs.Count + " ");
+			//Console.WriteLine("\nJobs Included in optimal solution:");
 			for (int i = includedJobs.Count - 1; i >= 0; i--) {        //Loop backwards to display jobs in increasing order of their ID's
-				Console.WriteLine(GetJobInfo(includedJobs[i]));
+				Console.Write(jobs[includedJobs[i]][0] + " ");
+				//Console.WriteLine(GetJobInfo(includedJobs[i]));
 			}
+			Console.WriteLine();
 		}
 
 		//Find the index of the job finishing before job i starts (uses jobs[][] array sorted by finish time)
@@ -54,8 +59,9 @@ namespace GoogleHashCode {
 		public void FindSolutionIterative(int j) {
 			while (j > 0) { //Stops when j==0
 				int compatibleIndex = LatestCompatible(j);  //find latest finishing job that's compatible with job j
-				if (jobs[j][3] + memo[compatibleIndex] > memo[j - 1] && !includedJobs.Contains(j)) { //Case where job j was included (from optimal substructure)
+				if (jobs[j][3] + memo[compatibleIndex] > memo[j - 1] && !takenJobs.Contains(j)) { //Case where job j was included (from optimal substructure)
 					includedJobs.Add(j);    //add job index to solution
+					takenJobs.Add(j);
 					j = compatibleIndex;        //update j to the next job to consider
 				} else {    //case where job j was NOT included, remove job j from the possible jobs in the solution & look at jobs 1 to (j-1)
 					j = j - 1;
@@ -64,16 +70,17 @@ namespace GoogleHashCode {
 		}
 
 		//Recursive method to retrace the memoization array & find optimal solution
-		private void findSolutionRecursive(int j) {
+		private void FindSolutionRecursive(int j) {
 			if (j == 0) {   //base case
 				return;
 			} else {
 				int compatibleIndex = LatestCompatible(j);  //find latest finishing job that's compatible with job j
 				if (jobs[j][3] + memo[compatibleIndex] > memo[j - 1] && !includedJobs.Contains(j)) { //Case where job j was included (from optimal substructure)
 					includedJobs.Add(j);    //add job index to solution
-					findSolutionRecursive(compatibleIndex); //recursively find remaining jobs starting the the latest compatible job
+					takenJobs.Add(j);
+					FindSolutionRecursive(compatibleIndex); //recursively find remaining jobs starting the the latest compatible job
 				} else {    //case where job j was NOT included, remove job j from the possible jobs in the solution
-					findSolutionRecursive(j - 1);
+					FindSolutionRecursive(j - 1);
 				}
 			}
 		}
@@ -88,14 +95,12 @@ namespace GoogleHashCode {
 			Program scheduler = new Program();
 			int[][] inputJobs = new int[][]
 			{
-				new int[] {1, 2, 6, 4},
-				new int[] {2, 0, 2, 2},
-				new int[] {3, 2, 4, 2}
+				new int[] {0, 2, 6, 4},
+				new int[] {1, 0, 2, 2},
+				new int[] {2, 2, 4, 2}
 			};
-			scheduler.CalcShedule(inputJobs);
-			scheduler.CalcShedule(inputJobs);
-
-			Console.Read();
+			scheduler.CalcShedule(inputJobs, 1);
+			scheduler.CalcShedule(inputJobs, 2);
 		}
 	}
 }

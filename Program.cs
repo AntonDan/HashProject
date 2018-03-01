@@ -7,14 +7,6 @@ using System.Threading.Tasks;
 namespace GoogleHashCode {
 
 	class Program {
-		int id = 0;
-		int startx = 1;
-		int starty = 2;
-		int endx = 3;
-		int endy = 4;
-		int starttime = 5;
-		int endtime = 6;
-		int duration = 7;
 		private Ride[] jobs;
 		private int[] memo;
 		private List<int> includedJobs;
@@ -25,7 +17,7 @@ namespace GoogleHashCode {
 		}
 
 		public void CalcShedule(Ride[] inputJobs, int id) {
-			jobs = inputJobs;
+			Array.Copy(inputJobs, jobs, inputJobs.Length);
 			memo = new int[jobs.Length];
 			includedJobs = new List<int>();
 
@@ -42,6 +34,7 @@ namespace GoogleHashCode {
 			for (int i = includedJobs.Count - 1; i >= 0; i--) {        //Loop backwards to display jobs in increasing order of their ID's
 				Console.Write(jobs[includedJobs[i]].id + " ");         //** jobs[includedJobs[i]].id 
 			}
+			includedJobs.Clear();
 			Console.WriteLine();
 		}
 
@@ -51,11 +44,13 @@ namespace GoogleHashCode {
 
 			while (low <= high) {       //Iterative binary search
 				int mid = (low + high) / 2;     //integer division (floor)
-				if (jobs[mid].start + GetDistance(jobs[mid].endx, jobs[mid].endy, jobs[i].startx, jobs[i].starty)  <= jobs[i].finish - jobs[i].duration) {   //** if (jobs[mid].start_time + Math.Abs( jobs[mid].endx - jobs[i].startx) + Math.Abs( jobs[mid].endx - jobs[i].startx) <= jobs[i].end_time - jobs[i].duration)
-					if (jobs[mid + 1].start + GetDistance(jobs[mid + 1].endx, jobs[mid + 1].endy, jobs[i].startx, jobs[i].starty) <= jobs[i].finish - jobs[i].duration)  //** if (jobs[mid + 1].start_time + Math.Abs( jobs[mid+1].endx - jobs[i].startx) + Math.Abs( jobs[mid+1].endx - jobs[i].startx) <= jobs[i].end_time - jobs[i].duration)
+				if (jobs[mid].start + jobs[mid].duration  <= jobs[i].finish - jobs[i].duration) {   //** if (jobs[mid].start_time + Math.Abs( jobs[mid].endx - jobs[i].startx) + Math.Abs( jobs[mid].endx - jobs[i].startx) <= jobs[i].end_time - jobs[i].duration)
+					if (jobs[mid + 1].start + jobs[mid + 1].duration <= jobs[i].finish - jobs[i].duration)  //** if (jobs[mid + 1].start_time + Math.Abs( jobs[mid+1].endx - jobs[i].startx) + Math.Abs( jobs[mid+1].endx - jobs[i].startx) <= jobs[i].end_time - jobs[i].duration)
 						low = mid + 1;
 					else
-						return mid;
+						if (!takenJobs.Contains(jobs[mid].id))
+							return mid;
+					high = mid - 1;
 				} else
 					high = mid - 1;
 			}
@@ -67,7 +62,7 @@ namespace GoogleHashCode {
 			int temp = 0;
 			while (j > 0) { //Stops when j==0
 				int compatibleIndex = LatestCompatible(j);  //find latest finishing job that's compatible with job j
-				if (jobs[j].duration + memo[compatibleIndex] > memo[j - 1] && !takenJobs.Contains(jobs[j].id)) { //** Case where job j was included (from optimal substructure)
+				if (jobs[j].duration + memo[compatibleIndex] > memo[j - 1]) { //** Case where job j was included (from optimal substructure)
 					includedJobs.Add(j);    //add job index to solution
 					takenJobs.Add(jobs[j].id);
 					j = compatibleIndex;        //update j to the next job to consider
@@ -105,8 +100,10 @@ namespace GoogleHashCode {
 		static void Main(string[] args) {
 			Data parser = new Data();
 			parser.ParseData(args[0]);
+			parser.Rides.Insert(0, new Ride(0, 0, 0, 0, 0, 0));
 			Program scheduler = new Program();
 			Ride[] inputJobs = parser.Rides.ToArray();
+			inputJobs[0].id = -1;
 			for (int i = 0; i < parser.Fleet; ++i) {
 				scheduler.CalcShedule(inputJobs, i);
 			}

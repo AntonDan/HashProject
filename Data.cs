@@ -77,9 +77,8 @@ namespace GoogleHashCode {
     }
 
     public class Ride {
-        private static int counter = 0;
 
-        public int id { get; private set; }
+        public int id { get; set; }
         public int startx { get; set; }
         public int starty { get; set; }
         public int endx { get; set; }
@@ -87,9 +86,10 @@ namespace GoogleHashCode {
         public int start { get; set; }
         public int finish { get; set; }
         public int duration { get; set; }
+		private static int counter = 0;
 
-        public int Start() {
-            return start;
+		public int Start() {
+			return start;
         }
 
         public int Finish() {
@@ -105,16 +105,33 @@ namespace GoogleHashCode {
         }
 
         public Ride(int a, int b, int x, int y, int s, int f) {
-            this.id = counter++;
-            this.startx = a;
+			this.id = counter++;
+			this.startx = a;
             this.starty = b;
             this.endx = x;
             this.endy = y;
             this.start = s;
             this.finish = f;
-            this.duration = this.Finish() - this.Start();
+            this.duration = Math.Abs(this.startx - this.endx) + Math.Abs(this.starty - this.endy);
         }
 
     }
+
+	public class Car {
+		public int id;
+		public int posx;
+		public int posy;
+		public int availableAt;
+		public List<Ride> ridesTaken;
+
+		public Car(int id, int posx, int posy, int availableAt) {
+			this.id = id;
+			this.posx = posx;
+			this.posy = posy;
+			this.availableAt = availableAt;
+			this.ridesTaken = new List<Ride>();
+		}
+	}
+
 
 }

@@ -86,6 +86,7 @@ namespace GoogleHashCode {
         public int start { get; set; }
         public int finish { get; set; }
         public int duration { get; set; }
+		public bool available { get; set; }
 		private static int counter = 0;
 
 		public int Start() {
@@ -112,6 +113,7 @@ namespace GoogleHashCode {
             this.endy = y;
             this.start = s;
             this.finish = f;
+			this.available = true;
             this.duration = Math.Abs(this.startx - this.endx) + Math.Abs(this.starty - this.endy);
         }
 
@@ -133,5 +135,119 @@ namespace GoogleHashCode {
 		}
 	}
 
+	public class Car2 {
+		public int id;
+		public List<Choice> choices;
 
+		public Car2(int id) {
+			this.id = id;
+			this.choices = new List<Choice>() { new Choice(-1, 0, 0, 0, 0, 0, new List<Choice>()) };
+		}
+	}
+
+	public delegate void TreeVisitor<T>(T nodeData);
+
+	public class Tree<T> {
+		NTree<T> root;
+		int depth;
+
+		public Tree(T root) {
+			this.root = new NTree<T>(root, null);
+			depth = 1;
+		}
+
+		public void AddChild(NTree<T> node, T data) {
+
+		}
+	}
+
+	public class NTree<T> {
+		private T data;
+		private NTree<T> parent;
+		private LinkedList<NTree<T>> children;
+		private int depth;
+
+
+		public NTree(T data, NTree<T> parent) {
+			this.data = data;
+			this.parent = parent;
+			this.depth = (parent != null) ? parent.depth + 1 : 0;
+			children = new LinkedList<NTree<T>>();
+		}
+
+		public void AddChild(T data) {
+			children.AddFirst(new NTree<T>(data, this));
+		}
+
+		public NTree<T> GetChild(int i) {
+			foreach (NTree<T> n in children)
+				if (--i == 0)
+					return n;
+			return null;
+		}
+
+		public LinkedList<NTree<T>> GetChildren() {
+			return children;
+		}
+
+		public NTree<T> GetParent() {
+			return parent;
+		}
+
+		public void Traverse(NTree<T> node, TreeVisitor<T> visitor) {
+			if (node.children.Count == 0)
+				visitor(node.data);
+			foreach (NTree<T> kid in node.children)
+				Traverse(kid, visitor);
+		}
+	}
+
+	public class Choice : IComparable<Choice> {
+		public int index { get; set; }
+		public float score { get; set; }
+		public int award { get; set; }
+		public int endStep { get; set; }
+		public int endx { get; set; }
+		public int endy { get; set; }
+		public List<Choice> prevChoices;
+		public List<Choice> nextChoices;
+
+		public Choice(int index, float score, int award, int endStep, int endx, int endy, List<Choice> prevChoices) {
+			this.index = index;
+			this.score = score;
+			this.award = award;
+			this.endStep = endStep;
+			this.endx = endx;
+			this.endy = endy;
+			this.prevChoices = prevChoices;
+			this.nextChoices = new List<Choice>();
+		}
+
+		public void Set(int index, float score, int award, int endStep, int endx, int endy) {
+			this.index = index;
+			this.score = score;
+			this.award = award;
+			this.endStep = endStep;
+			this.endx = endx;
+			this.endy = endy;
+		}
+
+		public void Set(Choice choice) {
+			this.index = choice.index;
+			this.score = choice.score;
+			this.award = choice.award;
+			this.endStep = choice.endStep;
+			this.endx = choice.endx;
+			this.endy = choice.endy;
+		}
+
+		int IComparable<Choice>.CompareTo(Choice other) {
+			if (other.score > this.score)
+				return -1;
+			else if (other.score == this.score)
+				return 0;
+			else
+				return 1;
+		}
+	}
 }

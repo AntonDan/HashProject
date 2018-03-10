@@ -96,8 +96,6 @@ namespace GoogleHashCode {
 				for (int c = 0; c < cars.Length; ++c) {
 
 					Car car = cars[c];
-					// foreach(Choice choice in car.previousChoices) For every different previous decision
-					// List<Choice> newChoices = new List<Choice>(); List of top n scores
 					if (car.availableAt <= step) {
 						int count = 0;
 						int bestRide = -1;
@@ -116,11 +114,8 @@ namespace GoogleHashCode {
 								 * metropolis : 1 1 1.75 1 1
 								 * highbonus  : 1 1 1 1 1
 								 */
-								float score = ride.duration + ((startStep <= ride.start) ? parser.Bonus : 0) - waitTime * 1.75f - GetDistance(car.posx, car.posy, ride.startx, ride.starty) - (endStep - step);
-								// state worst = (newChoices.Count == maxSize) ? newChoices.Min() : null; 
-								if (score > bestScore || (score >= bestScore && endStep < availableAt)) { // if (worst == null || score > worst.score) if the list is not full or the score is better than the minimum
-																										  // if (score == null) newChoices.Add(new Choice(i, score, endStep, award))
-																										  // else worstChoice.Set(i, score, endStep, award); 
+								float score = 50000 + ride.duration + ((startStep <= ride.start) ? parser.Bonus : 0) - waitTime * 1.75f - GetDistance(car.posx, car.posy, ride.startx, ride.starty) - (endStep - step);
+								if (score > bestScore || (score >= bestScore && endStep < availableAt)) {
 									bestRide = i;
 									bestScore = score;
 									availableAt = endStep;
@@ -128,9 +123,7 @@ namespace GoogleHashCode {
 								}
 							}
 						}
-						// state best = (list.Count > 0) ? list.Max() : null; 
-						if (bestRide != -1) { // if (best.score > bestChoice.score) if the maximum score of the list is better than the max score of the 
-											  // bestChoice = best;
+						if (bestRide != -1) { 
 							Ride ride = rides[bestRide];
 							car.ridesTaken.Add(ride);
 							car.posx = ride.endx;
@@ -140,9 +133,7 @@ namespace GoogleHashCode {
 							rides.RemoveAt(bestRide);
 						}
 					}
-					// end of loop
-					// find the depth 2 decision
-					earliestAvailable = Math.Min(earliestAvailable, car.availableAt); // preChoices
+					earliestAvailable = Math.Min(earliestAvailable, car.availableAt); 
 				}
 			}
 			foreach (Car car in cars) {
@@ -154,12 +145,10 @@ namespace GoogleHashCode {
 			}
 			Console.WriteLine(totalScore);
 		}
-		
+
 		static void Solution3(Data parser, Ride[] inputJobs) {
 			Array.Sort(inputJobs, (a, b) => Comparer<int>.Default.Compare(a.finish, b.finish)); // Sort jobs by finish time
 			List<Ride> rides = inputJobs.ToList();
-
-			int totalScore = 0;
 
 			Car2[] cars = new Car2[parser.Fleet];
 			for (int i = 0; i < parser.Fleet; ++i) {
@@ -168,7 +157,7 @@ namespace GoogleHashCode {
 			int index = 0, earliestAvailable = 0;
 			int maxSize = 5;
 			for (int step = 0; step < parser.TSteps; step = Math.Max(earliestAvailable, step + 1)) {
-				for (; index < rides.Count && rides[index].finish < step; ++index);
+				for (; index < rides.Count && rides[index].finish < step; ++index) ;
 				earliestAvailable = parser.TSteps;
 				for (int c = 0; c < cars.Length; ++c) {
 
@@ -177,8 +166,11 @@ namespace GoogleHashCode {
 						Choice choice = car.choices[choiceIndex];
 						if (choice.endStep <= step) {
 							List<Choice> newChoices = new List<Choice>(); // List of top n scores
+							Choice worstChoice = (newChoices.Count == maxSize) ? newChoices.Min() : null;
+
 							for (int i = index; i < rides.Count; ++i) {
 								Ride ride = rides[i];
+								if (!ride.available) continue;
 								int startStep = Math.Max(step + GetDistance(choice.endx, choice.endy, ride.startx, ride.starty), ride.start);
 								int endStep = startStep + ride.duration;
 								if (endStep < ride.finish) {
@@ -188,8 +180,7 @@ namespace GoogleHashCode {
 									 * metropolis : 1 1 1.75 1 1
 									 * highbonus  : 1 1 1 1 1
 									 */
-									float score = ride.duration + ((startStep <= ride.start) ? parser.Bonus : 0) - waitTime * 1.75f - GetDistance(choice.endx, choice.endy, ride.startx, ride.starty) - (endStep - step);
-									Choice worstChoice = (newChoices.Count == maxSize) ? newChoices.Min() : null;
+									float score = 50000 + ride.duration + ((startStep <= ride.start) ? parser.Bonus : 0) - waitTime * 1.75f - GetDistance(choice.endx, choice.endy, ride.startx, ride.starty) - (endStep - step);
 									if (worstChoice == null || score > worstChoice.score) {  // if the list is not full or the score is better than the minimum
 										int award = ride.duration + ((startStep <= ride.start) ? parser.Bonus : 0);
 										if (worstChoice == null) { // list is not full
@@ -197,29 +188,98 @@ namespace GoogleHashCode {
 											temp.Add(choice);
 											newChoices.Add(new Choice(i, choice.score + score, endStep, choice.award + award, ride.endx, ride.endy, temp)); // This might be bugged, temp should be all the previous choices that lent to the current choice but it needs to be disconnected from the rest choice lists
 										} else { // List is full so we just replace the minimum scoring choice with the current choice
-											worstChoice.Set(i, score, endStep, award, ride.endx, ride.endy);
+											worstChoice.Set(i, choice.score + score, endStep, choice.award + award, ride.endx, ride.endy);
 										}
+										worstChoice = (newChoices.Count == maxSize) ? newChoices.Min() : null;
 									}
 								}
 							}
 
-							if (newChoices.Count > 0) {		
-								/* TODO: If choice already has nextchoices (choice.nextChoices.Count == 0) then
-								 * Create a list with the maxSize highest scoring leaves of the 2 depth tree car.prevChoices (so the top scorers car.preChoices that have no children and the car.nextChoices of the car.preChoices that do have children) 
-								 * set that list as the new car.PrevChoices list
-								 * choiceIndex = 0
-								 */
+							if (newChoices.Count > 0) {
+								if (choice.nextChoices.Count != 0) {
+									List<Choice> bestChoices = new List<Choice>(); // List of top n scores
+									worstChoice = (bestChoices.Count > 0) ? bestChoices.Min() : null;
+									for (int j = 0; j < car.choices.Count; ++j) {
+										Choice tempChoice = car.choices[j];
+										if (tempChoice.index == -1) continue;
+										rides[tempChoice.index].available = true;
+										if (tempChoice.nextChoices.Count == 0) {
+											if (worstChoice == null || tempChoice.score > worstChoice.score) {
+												if (worstChoice == null) {
+													bestChoices.Add(tempChoice);
+												} else {
+													worstChoice.Set(tempChoice);
+												}
+												worstChoice = (bestChoices.Count == maxSize) ? bestChoices.Min() : null;
+											}
+										} else {
+											for (int l = 0; l < tempChoice.nextChoices.Count; ++l) {
+												Choice tempChoice2 = tempChoice.nextChoices[l];
+												if (tempChoice2.index == -1) continue;
+												rides[tempChoice2.index].available = true;
+												if (worstChoice == null || tempChoice2.score > worstChoice.score) {
+													if (worstChoice == null) {
+														bestChoices.Add(tempChoice2);
+													} else {
+														worstChoice.Set(tempChoice2);
+													}
+													worstChoice = (bestChoices.Count == maxSize) ? bestChoices.Min() : null;
+												}
+											}
+										}
+									}
+									car.choices = bestChoices;
+									foreach (Choice temp in bestChoices) {
+										if (temp.index >= 0) {
+											rides[temp.index].available = false;
+										}
+										earliestAvailable = Math.Min(earliestAvailable, temp.endStep);
+									}
+									choiceIndex = 0;
+								} else {
+									foreach (Choice temp in newChoices) {
+										if (temp.index >= 0) {
+											rides[temp.index].available = false;
+										}
+										earliestAvailable = Math.Min(earliestAvailable, temp.endStep);
+									}
+									choice.nextChoices = newChoices;
+								}
 							}
 						}
 					}
 					// TODO: earliestAvailable = Math.Min(earliestAvailable, car.availableAt); // This is supposed to find the next (earliest) step in which a car will be available, with multiple choices car.availableAt is not a thing. If you're not going to implement this set earliestAvailable = step + 1
 				}
 			}
-			foreach (Car2 car in cars) {
-				/* TODO: Find the leaf of the tree with the highest award 
-				 * Get the previous choices of that leaf and print them  
-				 */
 
+			int totalScore = 0;
+			foreach (Car2 car in cars) {
+				Choice bestChoice = null;
+				Console.WriteLine(car.choices.Count); 
+				for (int j = 0; j < car.choices.Count; ++j) { // WTF is going on here
+					Choice tempChoice = car.choices[j];
+					if (tempChoice == null || tempChoice.index == -1) continue;
+					if (tempChoice.nextChoices.Count == 0) {
+						if (bestChoice == null || tempChoice.award > bestChoice.award) {
+							bestChoice = tempChoice;
+						}
+					} else {
+						for (int l = 0; l < tempChoice.nextChoices.Count; ++l) {
+							Choice tempChoice2 = tempChoice.nextChoices[l];
+							if (bestChoice == null || tempChoice2.award > bestChoice.award) {
+								bestChoice = tempChoice2;
+							}
+						}
+					}
+				}
+				Console.Write(bestChoice.prevChoices.Count + " ");
+				foreach (Choice choice in bestChoice.prevChoices) {
+					if (choice.index != -1) {
+						totalScore += choice.award;
+						Console.Write(choice.index + " ");
+					}
+				}
+				Console.WriteLine(bestChoice.index);
 			}
 			Console.WriteLine(totalScore);
 		}
@@ -233,7 +293,7 @@ namespace GoogleHashCode {
 			//parser.Rides[0].id = -1;
 			includedJobs = new List<Ride>();
 			Ride[] inputJobs = parser.Rides.ToArray();
-			//Solution2(parser, inputJobs);
+			Solution3(parser, inputJobs);
 		}
 	}
 }
